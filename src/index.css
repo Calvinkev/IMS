@@ -396,6 +396,10 @@ table tr:hover {
   color: #7c2d12;
 }
 
+.admin-table tbody tr.product-row {
+  cursor: pointer;
+}
+
 .admin-table tr:hover {
   background: #fff7ed;
 }
@@ -497,6 +501,39 @@ table tr:hover {
   outline: none;
   border-color: var(--sky-500);
   box-shadow: var(--shadow-focus);
+}
+
+.report-control {
+  min-width: 160px;
+  height: 40px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.report-control option {
+  background: #ffffff;
+  color: var(--ink-900);
+}
+
+.report-control:focus {
+  outline: none;
+  border-color: var(--sky-500);
+  box-shadow: var(--shadow-focus);
+}
+
+.report-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.report-period-input {
+  width: 96px;
+  min-width: 96px;
 }
 
 @keyframes cardFloatIn {
@@ -703,6 +740,18 @@ table tr:hover {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+
+  .report-controls {
+    width: 100%;
+  }
+
+  .report-control {
+    width: 100%;
+  }
+
+  .report-period-input {
+    width: 120px;
   }
 
   .staff-app {

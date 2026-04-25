@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Package, Users, BarChart3, LogOut, Search, Plus,
-  AlertTriangle, Download, LayoutDashboard, Minus
+  AlertTriangle, Download, LayoutDashboard, Minus, Pencil, Trash2, Settings
 } from 'lucide-react';
 import Reports from './Reports';
 
-function AdminDashboard({ user, onLogout }) {
+function AdminDashboard({ user, onLogout, onUserUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -19,8 +19,14 @@ function AdminDashboard({ user, onLogout }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
+  const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
+  const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [productToDelete, setProductToDelete] = useState(null);
   const [newUser, setNewUser] = useState({
     username: '', password: '', full_name: '', role: 'staff'
   });
@@ -35,12 +41,22 @@ function AdminDashboard({ user, onLogout }) {
     unit_price: '',
     notes: ''
   });
+  const [accountForm, setAccountForm] = useState({
+    username: user.username,
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   useEffect(() => {
     loadStats();
     loadProducts();
     loadUsers();
   }, []);
+
+  useEffect(() => {
+    setAccountForm(prev => ({ ...prev, username: user.username }));
+  }, [user.username]);
 
   const loadStats = async () => {
     try {
@@ -80,7 +96,15 @@ function AdminDashboard({ user, onLogout }) {
   const loadProducts = async () => {
     try {
       const result = await window.electronAPI.db.all(
-        'SELECT * FROM products ORDER BY quantity <= min_stock DESC, name ASC'
+        `SELECT p.*, COALESCE(s.sold_quantity, 0) as sold_quantity
+         FROM products p
+         LEFT JOIN (
+           SELECT product_id, SUM(quantity) as sold_quantity
+           FROM transactions
+           WHERE type = 'out'
+           GROUP BY product_id
+         ) s ON s.product_id = p.id
+         ORDER BY p.quantity <= p.min_stock DESC, p.name ASC`
       );
       setProducts(result);
     } catch (err) {
@@ -114,16 +138,81 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
-  const handleToggleUser = async (userId, currentStatus) => {
+  const handleToggleUser = async (targetUser) => {
     try {
+      if (targetUser.role === 'admin') {
+        alert('Admin accounts cannot be deactivated.');
+        return;
+      }
+
+      if (targetUser.id === user.id) {
+        alert('You cannot deactivate your own account while logged in.');
+        return;
+      }
+
+      if (targetUser.role === 'admin' && targetUser.is_active) {
+        const adminCount = await window.electronAPI.db.get(
+          'SELECT COUNT(*) as count FROM users WHERE role = ? AND is_active = 1',
+          ['admin']
+        );
+        if ((adminCount?.count || 0) <= 1) {
+          alert('At least one active admin account is required.');
+          return;
+        }
+      }
+
       await window.electronAPI.db.run(
         'UPDATE users SET is_active = ? WHERE id = ?',
-        [currentStatus ? 0 : 1, userId]
+        [targetUser.is_active ? 0 : 1, targetUser.id]
       );
       loadUsers();
     } catch (err) {
       alert('Error updating user: ' + err.message);
     }
+  };
+
+  const handleDeleteUser = async (targetUser) => {
+    if (targetUser.role === 'admin') {
+      alert('Admin accounts cannot be deleted.');
+      return;
+    }
+
+    if (targetUser.id === user.id) {
+      alert('You cannot delete the account you are currently using.');
+      return;
+    }
+
+    setUserToDelete(targetUser);
+    setShowDeleteUserModal(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      if (userToDelete.role === 'admin' && userToDelete.is_active) {
+        const adminCount = await window.electronAPI.db.get(
+          'SELECT COUNT(*) as count FROM users WHERE role = ? AND is_active = 1',
+          ['admin']
+        );
+        if ((adminCount?.count || 0) <= 1) {
+          alert('Cannot delete the last active admin account.');
+          return;
+        }
+      }
+
+      await window.electronAPI.db.run('DELETE FROM users WHERE id = ?', [userToDelete.id]);
+      setShowDeleteUserModal(false);
+      setUserToDelete(null);
+      loadUsers();
+    } catch (err) {
+      alert('Error deleting user: ' + err.message);
+    }
+  };
+
+  const cancelDeleteUser = () => {
+    setShowDeleteUserModal(false);
+    setUserToDelete(null);
   };
 
   const handleAddProduct = async (e) => {
@@ -171,6 +260,90 @@ function AdminDashboard({ user, onLogout }) {
       notes: ''
     });
     setShowStockModal(true);
+  };
+
+  const openEditProductModal = (product) => {
+    setEditingProduct({
+      id: product.id,
+      sku: product.sku || '',
+      name: product.name || '',
+      category: product.category || '',
+      description: product.description || '',
+      cost_price: product.cost_price ?? '',
+      selling_price: product.selling_price ?? '',
+      quantity: product.quantity ?? 0,
+      min_stock: product.min_stock ?? 10,
+      unit: product.unit || 'pcs',
+      barcode: product.barcode || '',
+      supplier: product.supplier || ''
+    });
+    setShowEditProductModal(true);
+  };
+
+  const handleUpdateProduct = async (e) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    try {
+      await window.electronAPI.db.run(
+        `UPDATE products
+         SET sku = ?, name = ?, category = ?, description = ?,
+             cost_price = ?, selling_price = ?, quantity = ?, min_stock = ?,
+             unit = ?, barcode = ?, supplier = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          editingProduct.sku,
+          editingProduct.name,
+          editingProduct.category,
+          editingProduct.description,
+          parseFloat(editingProduct.cost_price || 0),
+          parseFloat(editingProduct.selling_price || 0),
+          parseInt(editingProduct.quantity || 0, 10),
+          parseInt(editingProduct.min_stock || 0, 10),
+          editingProduct.unit,
+          editingProduct.barcode,
+          editingProduct.supplier,
+          editingProduct.id
+        ]
+      );
+
+      setShowEditProductModal(false);
+      setEditingProduct(null);
+      loadProducts();
+      loadStats();
+    } catch (err) {
+      alert('Error updating product: ' + err.message);
+    }
+  };
+
+  const requestDeleteProduct = () => {
+    if (!editingProduct) return;
+    setProductToDelete(editingProduct);
+    setShowDeleteProductModal(true);
+  };
+
+  const cancelDeleteProduct = () => {
+    setShowDeleteProductModal(false);
+    setProductToDelete(null);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+
+    try {
+      await window.electronAPI.db.run('DELETE FROM transactions WHERE product_id = ?', [productToDelete.id]);
+      await window.electronAPI.db.run('DELETE FROM products WHERE id = ?', [productToDelete.id]);
+
+      setShowDeleteProductModal(false);
+      setProductToDelete(null);
+      setShowEditProductModal(false);
+      setEditingProduct(null);
+
+      loadProducts();
+      loadStats();
+    } catch (err) {
+      alert('Error deleting product: ' + err.message);
+    }
   };
 
   const handleStockOperation = async (e) => {
@@ -228,6 +401,73 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
+  const handleAccountUpdate = async (e) => {
+    e.preventDefault();
+
+    const username = accountForm.username.trim();
+    if (!username) {
+      alert('Username is required.');
+      return;
+    }
+
+    if (!accountForm.currentPassword) {
+      alert('Enter your current password to confirm changes.');
+      return;
+    }
+
+    if (accountForm.newPassword && accountForm.newPassword !== accountForm.confirmPassword) {
+      alert('New password confirmation does not match.');
+      return;
+    }
+
+    if (username === user.username && !accountForm.newPassword) {
+      alert('No changes detected.');
+      return;
+    }
+
+    try {
+      const auth = await window.electronAPI.db.get(
+        'SELECT id FROM users WHERE id = ? AND password = ?',
+        [user.id, accountForm.currentPassword]
+      );
+
+      if (!auth) {
+        alert('Current password is incorrect.');
+        return;
+      }
+
+      const existingUser = await window.electronAPI.db.get(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        [username, user.id]
+      );
+
+      if (existingUser) {
+        alert('That username is already in use.');
+        return;
+      }
+
+      await window.electronAPI.db.run(
+        `UPDATE users
+         SET username = ?,
+             password = CASE WHEN ? = '' THEN password ELSE ? END
+         WHERE id = ?`,
+        [username, accountForm.newPassword, accountForm.newPassword, user.id]
+      );
+
+      onUserUpdate?.({ username });
+      setAccountForm({
+        username,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      loadUsers();
+      alert('Account credentials updated successfully.');
+    } catch (err) {
+      alert('Error updating account: ' + err.message);
+    }
+  };
+
   const exportToCSV = (data, filename) => {
     const headers = Object.keys(data[0] || {});
     const csv = [
@@ -280,6 +520,13 @@ function AdminDashboard({ user, onLogout }) {
             onClick={() => setActiveTab('users')}
           >
             <Users size={20} /> Users
+          </a>
+          <a
+            href="#account"
+            className={activeTab === 'account' ? 'active' : ''}
+            onClick={() => setActiveTab('account')}
+          >
+            <Settings size={20} /> Account
           </a>
         </nav>
         <div className="admin-user-wrap">
@@ -403,13 +650,18 @@ function AdminDashboard({ user, onLogout }) {
                   <th>Stock</th>
                   <th>Cost</th>
                   <th>Selling</th>
-                  <th>Value</th>
-                  <th>Actions</th>
+                  <th>Expected Total</th>
+                  <th>Earned So Far</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredProducts.map(product => (
-                  <tr key={product.id}>
+                  <tr
+                    key={product.id}
+                    className="product-row"
+                    onClick={() => openEditProductModal(product)}
+                    title="Click to edit product"
+                  >
                     <td>{product.sku}</td>
                     <td>{product.name}</td>
                     <td>{product.category}</td>
@@ -420,23 +672,8 @@ function AdminDashboard({ user, onLogout }) {
                     </td>
                     <td>${product.cost_price}</td>
                     <td>${product.selling_price}</td>
-                    <td>${(product.quantity * product.cost_price).toFixed(2)}</td>
-                    <td>
-                      <button
-                        className="btn btn-success"
-                        style={{ padding: '6px 12px', marginRight: '8px' }}
-                        onClick={() => openStockModal(product, 'in')}
-                      >
-                        <Plus size={14} />
-                      </button>
-                      <button
-                        className="btn btn-danger"
-                        style={{ padding: '6px 12px' }}
-                        onClick={() => openStockModal(product, 'out')}
-                      >
-                        <Minus size={14} />
-                      </button>
-                    </td>
+                    <td>${(product.quantity * product.selling_price).toFixed(2)}</td>
+                    <td>${((product.sold_quantity || 0) * product.selling_price).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -478,14 +715,28 @@ function AdminDashboard({ user, onLogout }) {
                     </td>
                     <td>{new Date(u.created_at).toLocaleDateString()}</td>
                     <td>
-                      {u.username !== 'admin' && (
-                        <button 
-                          className={`btn ${u.is_active ? 'btn-danger' : 'btn-success'}`}
-                          style={{ padding: '6px 12px' }}
-                          onClick={() => handleToggleUser(u.id, u.is_active)}
-                        >
-                          {u.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
+                      {u.role === 'admin' ? (
+                        <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
+                          Protected
+                        </span>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            className={`btn ${u.is_active ? 'btn-danger' : 'btn-success'}`}
+                            style={{ padding: '6px 12px' }}
+                            onClick={() => handleToggleUser(u)}
+                          >
+                            {u.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            className="btn btn-danger"
+                            style={{ padding: '6px 10px' }}
+                            onClick={() => handleDeleteUser(u)}
+                            title="Delete user"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -494,7 +745,197 @@ function AdminDashboard({ user, onLogout }) {
             </table>
           </div>
         )}
+
+        {activeTab === 'account' && (
+          <div className="card admin-card" style={{ maxWidth: '760px' }}>
+            <div className="card-header">
+              <h2>Account Settings</h2>
+            </div>
+            <form onSubmit={handleAccountUpdate}>
+              <div className="form-group">
+                <label>New Username *</label>
+                <input
+                  type="text"
+                  required
+                  value={accountForm.username}
+                  onChange={e => setAccountForm({ ...accountForm, username: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Current Password *</label>
+                <input
+                  type="password"
+                  required
+                  value={accountForm.currentPassword}
+                  onChange={e => setAccountForm({ ...accountForm, currentPassword: e.target.value })}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>New Password (optional)</label>
+                  <input
+                    type="password"
+                    value={accountForm.newPassword}
+                    onChange={e => setAccountForm({ ...accountForm, newPassword: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={accountForm.confirmPassword}
+                    onChange={e => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" className="btn btn-primary">
+                  Save Credentials
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </main>
+
+      {/* Edit Product Modal */}
+      {showEditProductModal && editingProduct && (
+        <div className="modal-overlay" onClick={() => setShowEditProductModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit Product Details</h3>
+              <button className="close-btn" onClick={() => setShowEditProductModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleUpdateProduct}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>SKU *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingProduct.sku}
+                    onChange={e => setEditingProduct({ ...editingProduct, sku: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Barcode</label>
+                  <input
+                    type="text"
+                    value={editingProduct.barcode}
+                    onChange={e => setEditingProduct({ ...editingProduct, barcode: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Product Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingProduct.name}
+                  onChange={e => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Category</label>
+                  <input
+                    type="text"
+                    value={editingProduct.category}
+                    onChange={e => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Supplier</label>
+                  <input
+                    type="text"
+                    value={editingProduct.supplier}
+                    onChange={e => setEditingProduct({ ...editingProduct, supplier: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Cost Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingProduct.cost_price}
+                    onChange={e => setEditingProduct({ ...editingProduct, cost_price: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Selling Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingProduct.selling_price}
+                    onChange={e => setEditingProduct({ ...editingProduct, selling_price: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Current Quantity</label>
+                  <input
+                    type="number"
+                    value={editingProduct.quantity}
+                    onChange={e => setEditingProduct({ ...editingProduct, quantity: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Min Stock Level</label>
+                  <input
+                    type="number"
+                    value={editingProduct.min_stock}
+                    onChange={e => setEditingProduct({ ...editingProduct, min_stock: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Unit</label>
+                  <select
+                    value={editingProduct.unit}
+                    onChange={e => setEditingProduct({ ...editingProduct, unit: e.target.value })}
+                  >
+                    <option value="pcs">Pieces</option>
+                    <option value="kg">Kilograms</option>
+                    <option value="liters">Liters</option>
+                    <option value="boxes">Boxes</option>
+                    <option value="packs">Packs</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  rows="2"
+                  value={editingProduct.description}
+                  onChange={e => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                <button type="button" className="btn btn-danger" onClick={requestDeleteProduct}>
+                  <Trash2 size={16} /> Delete Product
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditProductModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  <Pencil size={16} /> Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add Product Modal */}
       {showProductModal && (
@@ -760,6 +1201,68 @@ function AdminDashboard({ user, onLogout }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {showDeleteUserModal && userToDelete && (
+        <div className="modal-overlay" onClick={cancelDeleteUser}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Confirm User Deletion</h3>
+              <button className="close-btn" onClick={cancelDeleteUser}>×</button>
+            </div>
+
+            <div className="admin-stock-info" style={{ marginBottom: '18px', padding: '14px', borderRadius: '8px' }}>
+              <p><strong>Username:</strong> {userToDelete.username}</p>
+              <p><strong>Role:</strong> {userToDelete.role}</p>
+              <p><strong>Status:</strong> {userToDelete.is_active ? 'Active' : 'Inactive'}</p>
+            </div>
+
+            <p style={{ marginBottom: '20px', color: '#991b1b', fontWeight: 600 }}>
+              This action is permanent and cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary" onClick={cancelDeleteUser}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-danger" onClick={confirmDeleteUser}>
+                <Trash2 size={16} /> Delete User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Product Confirmation Modal */}
+      {showDeleteProductModal && productToDelete && (
+        <div className="modal-overlay" onClick={cancelDeleteProduct}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Confirm Product Deletion</h3>
+              <button className="close-btn" onClick={cancelDeleteProduct}>×</button>
+            </div>
+
+            <div className="admin-stock-info" style={{ marginBottom: '18px', padding: '14px', borderRadius: '8px' }}>
+              <p><strong>SKU:</strong> {productToDelete.sku}</p>
+              <p><strong>Name:</strong> {productToDelete.name}</p>
+              <p><strong>Current Stock:</strong> {productToDelete.quantity} {productToDelete.unit}</p>
+            </div>
+
+            <p style={{ marginBottom: '20px', color: '#991b1b', fontWeight: 600 }}>
+              This will permanently remove the product row and its transaction history.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary" onClick={cancelDeleteProduct}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-danger" onClick={confirmDeleteProduct}>
+                <Trash2 size={16} /> Delete Product
+              </button>
+            </div>
           </div>
         </div>
       )}

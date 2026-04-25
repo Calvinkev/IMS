@@ -87,6 +87,8 @@ function Login({ onLogin }) {
         <p className="login-hint">
           Default: admin / admin123
         </p>
+        <p className="login-credit-heading">DEVELOPED</p>
+        <p className="login-credit-line">by Cal Technologies</p>
       </div>
     </div>
   );

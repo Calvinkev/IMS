@@ -9,15 +9,12 @@ function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('ims_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    // Always force fresh authentication when the app starts.
+    localStorage.removeItem('ims_user');
   }, []);
 
   const handleLogin = (userData) => {
     setUser(userData);
-    localStorage.setItem('ims_user', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
@@ -28,9 +25,7 @@ function App() {
   const handleUserUpdate = (updates) => {
     setUser((prev) => {
       if (!prev) return prev;
-      const nextUser = { ...prev, ...updates };
-      localStorage.setItem('ims_user', JSON.stringify(nextUser));
-      return nextUser;
+      return { ...prev, ...updates };
     });
   };
 

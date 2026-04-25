@@ -25,6 +25,15 @@ function App() {
     localStorage.removeItem('ims_user');
   };
 
+  const handleUserUpdate = (updates) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const nextUser = { ...prev, ...updates };
+      localStorage.setItem('ims_user', JSON.stringify(nextUser));
+      return nextUser;
+    });
+  };
+
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
@@ -36,7 +45,7 @@ function App() {
           path="/" 
           element={
             user.role === 'admin' ? 
-              <AdminDashboard user={user} onLogout={handleLogout} /> :
+              <AdminDashboard user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} /> :
               <StaffDashboard user={user} onLogout={handleLogout} />
           } 
         />

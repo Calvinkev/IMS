@@ -5,6 +5,8 @@ import { Calendar, Download, FileText, TrendingUp, Package, DollarSign } from 'l
 function Reports() {
   const [reportType, setReportType] = useState('sales');
   const [dateRange, setDateRange] = useState('week');
+  const [periodValue, setPeriodValue] = useState(1);
+  const [periodUnit, setPeriodUnit] = useState('weeks');
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({});
 
@@ -12,7 +14,7 @@ function Reports() {
 
   useEffect(() => {
     loadReport();
-  }, [reportType, dateRange]);
+  }, [reportType, dateRange, periodValue, periodUnit]);
 
   const getDateRange = () => {
     const today = new Date();
@@ -31,6 +33,19 @@ function Reports() {
       case 'year':
         startDate = new Date(today.getFullYear(), 0, 1);
         break;
+      case 'custom': {
+        const safeValue = Math.max(1, parseInt(periodValue || 1, 10));
+        startDate = new Date(today);
+
+        if (periodUnit === 'days') {
+          startDate.setDate(startDate.getDate() - safeValue);
+        } else if (periodUnit === 'weeks') {
+          startDate.setDate(startDate.getDate() - (safeValue * 7));
+        } else {
+          startDate.setMonth(startDate.getMonth() - safeValue);
+        }
+        break;
+      }
       default:
         startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
@@ -187,11 +202,11 @@ function Reports() {
       <div className="card">
         <div className="card-header">
           <h2><FileText size={20} /> Reports</h2>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="report-controls">
             <select 
               value={reportType} 
               onChange={(e) => setReportType(e.target.value)}
-              className="btn btn-secondary"
+              className="report-control"
               style={{ appearance: 'auto' }}
             >
               <option value="sales">Sales Report</option>
@@ -202,14 +217,38 @@ function Reports() {
             <select 
               value={dateRange} 
               onChange={(e) => setDateRange(e.target.value)}
-              className="btn btn-secondary"
+              className="report-control"
               style={{ appearance: 'auto' }}
             >
               <option value="today">Today</option>
               <option value="week">Last 7 Days</option>
               <option value="month">This Month</option>
               <option value="year">This Year</option>
+              <option value="custom">Custom Period</option>
             </select>
+
+            {dateRange === 'custom' && (
+              <>
+                <input
+                  type="number"
+                  min="1"
+                  value={periodValue}
+                  onChange={(e) => setPeriodValue(e.target.value)}
+                  className="report-control report-period-input"
+                  aria-label="Period value"
+                />
+                <select
+                  value={periodUnit}
+                  onChange={(e) => setPeriodUnit(e.target.value)}
+                  className="report-control"
+                  style={{ appearance: 'auto' }}
+                >
+                  <option value="days">Days</option>
+                  <option value="weeks">Weeks</option>
+                  <option value="months">Months</option>
+                </select>
+              </>
+            )}
             
             <button className="btn btn-primary" onClick={exportReport}>
               <Download size={16} /> Export CSV

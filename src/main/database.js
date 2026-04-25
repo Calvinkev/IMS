@@ -67,9 +67,9 @@ class Database {
         description TEXT
       )`);
 
-      // Insert default admin user
-      this.db.get("SELECT * FROM users WHERE username = 'admin'", (err, row) => {
-        if (!row) {
+      // Bootstrap default admin only when no admin account exists.
+      this.db.get("SELECT COUNT(*) as count FROM users WHERE role = 'admin'", (err, row) => {
+        if (!err && (!row || row.count === 0)) {
           this.db.run(
             "INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)",
             ['admin', 'admin123', 'Administrator', 'admin']

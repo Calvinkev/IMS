@@ -34,6 +34,7 @@
     "extends": null,
     "appId": "com.shop.ims",
     "productName": "Shop IMS",
+    "afterPack": "scripts/afterPack.js",
     "extraMetadata": {
       "main": "src/main/main.js"
     },
@@ -49,10 +50,12 @@
     "win": {
       "target": [
         {
+          "target": "portable",
+          "arch": ["x64"]
+        },
+        {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ]
     },
@@ -69,8 +72,13 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Shop IMS",
+      "artifactName": "Shop-IMS-Setup-${version}.${ext}"
+    },
+    "npmRebuild": false
   },
   "browserslist": {
     "production": [

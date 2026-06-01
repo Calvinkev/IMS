@@ -1,0 +1,25 @@
+version: 1.0.{build}
+image: Visual Studio 2022
+
+environment:
+  nodejs_version: "18"
+  CI: "false"
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+install:
+  - ps: Install-Product node $env:nodejs_version
+  - npm ci
+
+build_script:
+  - npm run dist:win
+
+artifacts:
+  - path: dist\*.exe
+    name: shop-ims-windows
+  - path: dist\*.msi
+    name: shop-ims-windows
+  - path: dist\*.zip
+    name: shop-ims-windows
+
+cache:
+  - node_modules -> package-lock.json

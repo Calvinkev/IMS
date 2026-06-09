@@ -1,9 +1,9 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const { app } = require('electron');
 const fs = require('fs');
 
-class Database {
+class DatabaseManager {
   constructor() {
     const userDataPath = app ? app.getPath('userData') : './data';
     
@@ -12,112 +12,114 @@ class Database {
     }
     
     const dbPath = path.join(userDataPath, 'inventory.db');
-    this.db = new sqlite3.Database(dbPath);
+    this.db = new Database(dbPath);
+    this.db.pragma('journal_mode = WAL');
   }
 
   init() {
-    this.db.serialize(() => {
-      // Products table
-      this.db.run(`CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sku TEXT UNIQUE NOT NULL,
-        name TEXT NOT NULL,
-        category TEXT,
-        description TEXT,
-        cost_price REAL DEFAULT 0,
-        selling_price REAL DEFAULT 0,
-        quantity INTEGER DEFAULT 0,
-        min_stock INTEGER DEFAULT 10,
-        unit TEXT DEFAULT 'pcs',
-        barcode TEXT,
-        supplier TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
+    // Products table
+    this.db.exec(`CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sku TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT,
+      description TEXT,
+      cost_price REAL DEFAULT 0,
+      selling_price REAL DEFAULT 0,
+      quantity INTEGER DEFAULT 0,
+      min_stock INTEGER DEFAULT 10,
+      unit TEXT DEFAULT 'pcs',
+      barcode TEXT,
+      supplier TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-      // Transactions table
-      this.db.run(`CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        product_id INTEGER NOT NULL,
-        type TEXT NOT NULL,
-        quantity INTEGER NOT NULL,
-        unit_price REAL DEFAULT 0,
-        total_amount REAL DEFAULT 0,
-        notes TEXT,
-        user_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (product_id) REFERENCES products(id)
-      )`);
+    // Transactions table
+    this.db.exec(`CREATE TABLE IF NOT EXISTS transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      unit_price REAL DEFAULT 0,
+      total_amount REAL DEFAULT 0,
+      notes TEXT,
+      user_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )`);
 
-      // Users table
-      this.db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        full_name TEXT,
-        role TEXT DEFAULT 'staff',
-        is_active INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
+    // Users table
+    this.db.exec(`CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      full_name TEXT,
+      role TEXT DEFAULT 'staff',
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-      // Categories table
-      this.db.run(`CREATE TABLE IF NOT EXISTS categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL,
-        description TEXT
-      )`);
+    // Categories table
+    this.db.exec(`CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT
+    )`);
 
-      // Bootstrap default admin only when no admin account exists.
-      this.db.get("SELECT COUNT(*) as count FROM users WHERE role = 'admin'", (err, row) => {
-        if (!err && (!row || row.count === 0)) {
-          this.db.run(
-            "INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)",
-            ['admin', 'admin123', 'Administrator', 'admin']
-          );
-        }
-      });
-    });
-  }
-
-  query(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.all(sql, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
+    // Bootstrap default admin only when no admin account exists
+    try {
+      const adminExists = this.db.prepare(
+        "SELECT COUNT(*) as count FROM users WHERE role = 'admin'"
+      ).get();
+      
+      if (!adminExists || adminExists.count === 0) {
+        this.db.prepare(
+          "INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)"
+        ).run('admin', 'admin123', 'Administrator', 'admin');
+      }
+    } catch (err) {
+      console.error('Error bootstrapping admin:', err);
+    }
   }
 
   run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, params, function(err) {
-        if (err) reject(err);
-        else resolve({ id: this.lastID, changes: this.changes });
-      });
-    });
+    try {
+      const stmt = this.db.prepare(sql);
+      const result = stmt.run(...params);
+      return { id: result.lastInsertRowid, changes: result.changes };
+    } catch (err) {
+      throw err;
+    }
   }
 
   get(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.get(sql, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+    try {
+      const stmt = this.db.prepare(sql);
+      return stmt.get(...params);
+    } catch (err) {
+      throw err;
+    }
   }
 
   all(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.all(sql, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
+    try {
+      const stmt = this.db.prepare(sql);
+      return stmt.all(...params);
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  query(sql, params = []) {
+    return this.all(sql, params);
   }
 
   close() {
-    this.db.close();
+    if (this.db) {
+      this.db.close();
+    }
   }
 }
 
-module.exports = Database;
+module.exports = DatabaseManager;

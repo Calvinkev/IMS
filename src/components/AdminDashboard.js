@@ -493,41 +493,106 @@ function AdminDashboard({ user, onLogout, onUserUpdate }) {
       <aside className="sidebar admin-sidebar">
         <h1 className="admin-brand"><Package size={24} /> Shop IMS</h1>
         <nav className="admin-nav">
-          <a 
-            href="#overview" 
-            className={activeTab === 'overview' ? 'active' : ''}
+          <button 
+            className={`nav-button ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => setActiveTab('overview')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
           >
-            <LayoutDashboard size={20} /> Overview
-          </a>
-          <a 
-            href="#products" 
-            className={activeTab === 'products' ? 'active' : ''}
+            <a 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <LayoutDashboard size={20} /> Overview
+            </a>
+          </button>
+          <button 
+            className={`nav-button ${activeTab === 'products' ? 'active' : ''}`}
             onClick={() => setActiveTab('products')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
           >
-            <Package size={20} /> All Products
-          </a>
-          <a 
-            href="#reports" 
-            className={activeTab === 'reports' ? 'active' : ''}
+            <a 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <Package size={20} /> All Products
+            </a>
+          </button>
+          <button 
+            className={`nav-button ${activeTab === 'reports' ? 'active' : ''}`}
             onClick={() => setActiveTab('reports')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
           >
-            <BarChart3 size={20} /> Reports
-          </a>
-          <a 
-            href="#users" 
-            className={activeTab === 'users' ? 'active' : ''}
+            <a 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <BarChart3 size={20} /> Reports
+            </a>
+          </button>
+          <button 
+            className={`nav-button ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
           >
-            <Users size={20} /> Users
-          </a>
-          <a
-            href="#account"
-            className={activeTab === 'account' ? 'active' : ''}
+            <a 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <Users size={20} /> Users
+            </a>
+          </button>
+          <button
+            className={`nav-button ${activeTab === 'account' ? 'active' : ''}`}
             onClick={() => setActiveTab('account')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
           >
-            <Settings size={20} /> Account
-          </a>
+            <a 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <Settings size={20} /> Account
+            </a>
+          </button>
         </nav>
         <div className="admin-user-wrap">
           <div className="admin-user-panel">

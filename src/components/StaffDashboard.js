@@ -117,20 +117,46 @@ function StaffDashboard({ user, onLogout }) {
       <aside className="sidebar staff-sidebar">
         <h1 className="staff-brand"><Package size={24} /> Shop IMS</h1>
         <nav className="staff-nav">
-          <a 
-            href="#products" 
-            className={activeTab === 'products' ? 'active' : ''}
+          <button 
+            className={`nav-button ${activeTab === 'products' ? 'active' : ''}`}
             onClick={() => setActiveTab('products')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
           >
-            <Box size={20} /> Products
-          </a>
-          <a 
-            href="#transactions" 
-            className={activeTab === 'transactions' ? 'active' : ''}
+            <a 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <Box size={20} /> Products
+            </a>
+          </button>
+          <button 
+            className={`nav-button ${activeTab === 'transactions' ? 'active' : ''}`}
             onClick={() => setActiveTab('transactions')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
           >
-            <History size={20} /> Transactions
-          </a>
+            <a 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <History size={20} /> Transactions
+            </a>
+          </button>
         </nav>
         <div className="staff-user-wrap">
           <div className="staff-user-panel">

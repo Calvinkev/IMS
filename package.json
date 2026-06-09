@@ -9,6 +9,7 @@
     "build": "react-scripts build",
     "electron": "electron .",
     "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "postinstall": "electron-builder install-app-deps",
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
     "dist:linux": "npm run build && electron-builder --linux AppImage"
@@ -78,7 +79,7 @@
       "shortcutName": "Shop IMS",
       "artifactName": "Shop-IMS-Setup-${version}.${ext}"
     },
-    "npmRebuild": false
+    "npmRebuild": true
   },
   "browserslist": {
     "production": [

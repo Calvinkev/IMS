@@ -3,10 +3,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Calendar, Download, FileText, TrendingUp, Package, DollarSign } from 'lucide-react';
 
 function Reports() {
-  const [reportType, setReportType] = useState('sales');
-  const [dateRange, setDateRange] = useState('week');
-  const [periodValue, setPeriodValue] = useState(1);
-  const [periodUnit, setPeriodUnit] = useState('weeks');
+  const [reportType,   setReportType]   = useState(() => localStorage.getItem('reports_type')   || 'sales');
+  const [dateRange,    setDateRange]    = useState(() => localStorage.getItem('reports_range')  || 'week');
+  const [periodValue,  setPeriodValue]  = useState(() => localStorage.getItem('reports_pval')   || 1);
+  const [periodUnit,   setPeriodUnit]   = useState(() => localStorage.getItem('reports_punit')  || 'weeks');
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({});
 
@@ -203,9 +203,9 @@ function Reports() {
         <div className="card-header">
           <h2><FileText size={20} /> Reports</h2>
           <div className="report-controls">
-            <select 
-              value={reportType} 
-              onChange={(e) => setReportType(e.target.value)}
+            <select
+              value={reportType}
+              onChange={(e) => { setReportType(e.target.value); localStorage.setItem('reports_type', e.target.value); }}
               className="report-control"
               style={{ appearance: 'auto' }}
             >
@@ -214,9 +214,9 @@ function Reports() {
               <option value="products">Top Products</option>
             </select>
             
-            <select 
-              value={dateRange} 
-              onChange={(e) => setDateRange(e.target.value)}
+            <select
+              value={dateRange}
+              onChange={(e) => { setDateRange(e.target.value); localStorage.setItem('reports_range', e.target.value); }}
               className="report-control"
               style={{ appearance: 'auto' }}
             >
@@ -233,13 +233,13 @@ function Reports() {
                   type="number"
                   min="1"
                   value={periodValue}
-                  onChange={(e) => setPeriodValue(e.target.value)}
+                  onChange={(e) => { setPeriodValue(e.target.value); localStorage.setItem('reports_pval', e.target.value); }}
                   className="report-control report-period-input"
                   aria-label="Period value"
                 />
                 <select
                   value={periodUnit}
-                  onChange={(e) => setPeriodUnit(e.target.value)}
+                  onChange={(e) => { setPeriodUnit(e.target.value); localStorage.setItem('reports_punit', e.target.value); }}
                   className="report-control"
                   style={{ appearance: 'auto' }}
                 >

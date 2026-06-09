@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const Database = require('./database');
 
@@ -21,7 +21,7 @@ function createWindow() {
 
   const forceLocalBuild = process.env.IMS_FORCE_LOCAL_BUILD === '1';
   const isDev = !app.isPackaged && !forceLocalBuild;
-  
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
@@ -37,9 +37,9 @@ function createWindow() {
 app.whenReady().then(() => {
   db = new Database();
   db.init();
-  
+
   createWindow();
-  
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -50,7 +50,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// IPC handlers
+// ---------- IPC handlers ----------
+
 ipcMain.handle('db:query', async (event, sql, params) => {
   return db.query(sql, params);
 });
@@ -65,4 +66,27 @@ ipcMain.handle('db:get', async (event, sql, params) => {
 
 ipcMain.handle('db:all', async (event, sql, params) => {
   return db.all(sql, params);
+});
+
+// Atomic multi-statement transaction
+ipcMain.handle('db:transaction', async (event, operations) => {
+  return db.transaction(operations);
+});
+
+// Password helpers (bcrypt runs in main process, never in renderer)
+ipcMain.handle('db:hashPassword', async (event, plainText) => {
+  return db.hashPassword(plainText);
+});
+
+ipcMain.handle('db:verifyPassword', async (event, plainText, hash) => {
+  return db.verifyPassword(plainText, hash);
+});
+
+// Native save-file dialog for CSV export
+ipcMain.handle('dialog:saveFile', async (event, defaultFileName) => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: defaultFileName,
+    filters: [{ name: 'CSV Files', extensions: ['csv'] }]
+  });
+  return result; // { canceled, filePath }
 });

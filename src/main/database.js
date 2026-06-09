@@ -2,15 +2,18 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const { app } = require('electron');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
+
+const BCRYPT_ROUNDS = 10;
 
 class DatabaseManager {
   constructor() {
     const userDataPath = app ? app.getPath('userData') : './data';
-    
+
     if (!fs.existsSync(userDataPath)) {
       fs.mkdirSync(userDataPath, { recursive: true });
     }
-    
+
     const dbPath = path.join(userDataPath, 'inventory.db');
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL');
@@ -72,16 +75,52 @@ class DatabaseManager {
       const adminExists = this.db.prepare(
         "SELECT COUNT(*) as count FROM users WHERE role = 'admin'"
       ).get();
-      
+
       if (!adminExists || adminExists.count === 0) {
+        const hashed = bcrypt.hashSync('admin123', BCRYPT_ROUNDS);
         this.db.prepare(
-          "INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)"
-        ).run('admin', 'admin123', 'Administrator', 'admin');
+          'INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)'
+        ).run('admin', hashed, 'Administrator', 'admin');
       }
     } catch (err) {
       console.error('Error bootstrapping admin:', err);
     }
+
+    // Migrate any existing plain-text passwords to bcrypt hashes.
+    // A bcrypt hash always starts with "$2" — skip rows already hashed.
+    try {
+      const users = this.db.prepare(
+        "SELECT id, password FROM users WHERE password NOT LIKE '$2%'"
+      ).all();
+
+      const updateStmt = this.db.prepare('UPDATE users SET password = ? WHERE id = ?');
+      const migrate = this.db.transaction((rows) => {
+        for (const u of rows) {
+          const hashed = bcrypt.hashSync(u.password, BCRYPT_ROUNDS);
+          updateStmt.run(hashed, u.id);
+        }
+      });
+      migrate(users);
+
+      if (users.length > 0) {
+        console.log(`Migrated ${users.length} plain-text password(s) to bcrypt.`);
+      }
+    } catch (err) {
+      console.error('Error migrating passwords:', err);
+    }
   }
+
+  // ---------- password helpers ----------
+
+  hashPassword(plainText) {
+    return bcrypt.hashSync(plainText, BCRYPT_ROUNDS);
+  }
+
+  verifyPassword(plainText, hash) {
+    return bcrypt.compareSync(plainText, hash);
+  }
+
+  // ---------- query helpers ----------
 
   run(sql, params = []) {
     try {
@@ -113,6 +152,23 @@ class DatabaseManager {
 
   query(sql, params = []) {
     return this.all(sql, params);
+  }
+
+  /**
+   * Execute multiple {sql, params} operations atomically.
+   * All succeed or all roll back.
+   */
+  transaction(operations) {
+    const txn = this.db.transaction((ops) => {
+      const results = [];
+      for (const op of ops) {
+        const stmt = this.db.prepare(op.sql);
+        const res = stmt.run(...(op.params || []));
+        results.push({ id: res.lastInsertRowid, changes: res.changes });
+      }
+      return results;
+    });
+    return txn(operations);
   }
 
   close() {

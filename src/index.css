@@ -825,3 +825,172 @@ table tr:hover {
     gap: 8px;
   }
 }
+
+/* ── nav-button active state (replaces old <a> active) ─────────────────────── */
+.nav-button {
+  border-radius: 12px;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  color: #b9c8dc;
+}
+
+.nav-button:hover,
+.nav-button.active {
+  background: linear-gradient(130deg, rgba(56, 189, 248, 0.18), rgba(14, 116, 144, 0.34)) !important;
+  border: 1px solid rgba(56, 189, 248, 0.42) !important;
+  color: white !important;
+  transform: translateX(2px);
+}
+
+.admin-nav .nav-button:hover,
+.admin-nav .nav-button.active {
+  background: linear-gradient(130deg, rgba(249, 115, 22, 0.18), rgba(2, 6, 23, 0.3)) !important;
+  border-color: rgba(249, 115, 22, 0.35) !important;
+}
+
+.staff-nav .nav-button {
+  color: #93a4bc;
+}
+
+.staff-nav .nav-button:hover,
+.staff-nav .nav-button.active {
+  background: linear-gradient(120deg, rgba(14, 165, 233, 0.14), rgba(30, 41, 59, 0.25)) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  color: #f8fafc !important;
+}
+
+/* ── skeleton loader ────────────────────────────────────────────────────────── */
+.skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite;
+  margin: 2px 0;
+}
+
+.skeleton-line--wide {
+  height: 28px;
+  margin-top: 6px;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── receipt modal ───────────────────────────────────────────────────────────── */
+.receipt-modal {
+  max-width: 420px;
+}
+
+.receipt-body {
+  background: #fafafa;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 20px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+}
+
+.receipt-shop {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.receipt-date {
+  text-align: center;
+  color: #64748b;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.receipt-divider {
+  border: none;
+  border-top: 1px dashed #94a3b8;
+  margin: 10px 0;
+}
+
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.receipt-table td {
+  padding: 4px 2px;
+  border: none;
+  background: transparent;
+}
+
+.receipt-table td:first-child {
+  color: #64748b;
+  width: 40%;
+}
+
+.receipt-table tr:hover {
+  background: transparent;
+}
+
+.receipt-footer {
+  text-align: center;
+  color: #64748b;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* ── sale total preview ──────────────────────────────────────────────────────── */
+.sale-total-preview {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #065f46;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+/* ── error boundary ─────────────────────────────────────────────────────────── */
+.error-boundary-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #0f172a;
+}
+
+.error-boundary-box {
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 40px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  max-width: 480px;
+  text-align: center;
+  box-shadow: 0 24px 56px rgba(0,0,0,0.5);
+}
+
+.error-boundary-box h2 {
+  font-size: 1.4rem;
+  margin-bottom: 14px;
+  color: #f87171;
+}
+
+.error-boundary-box p {
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── print styles ────────────────────────────────────────────────────────────── */
+@media print {
+  body > * { display: none; }
+  #receipt-print-area {
+    display: block !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12pt;
+    padding: 10mm;
+  }
+}

@@ -15,6 +15,7 @@
     "dist:linux": "npm run build && electron-builder --linux AppImage"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.0.0",
     "date-fns": "^2.30.0",
     "lucide-react": "^0.294.0",
@@ -51,11 +52,15 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },

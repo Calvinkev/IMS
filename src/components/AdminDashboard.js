@@ -493,105 +493,40 @@ function AdminDashboard({ user, onLogout, onUserUpdate }) {
       <aside className="sidebar admin-sidebar">
         <h1 className="admin-brand"><Package size={24} /> Shop IMS</h1>
         <nav className="admin-nav">
-          <button 
+          <button
             className={`nav-button ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => setActiveTab('overview')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%', display: 'flex', alignItems: 'center', gap: '12px', paddingInline: '16px', paddingBlock: '12px', color: 'inherit' }}
           >
-            <a 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                width: '100%',
-                padding: '12px 16px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                color: 'inherit'
-              }}
-            >
-              <LayoutDashboard size={20} /> Overview
-            </a>
+            <LayoutDashboard size={20} /> Overview
           </button>
-          <button 
+          <button
             className={`nav-button ${activeTab === 'products' ? 'active' : ''}`}
             onClick={() => setActiveTab('products')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%', display: 'flex', alignItems: 'center', gap: '12px', paddingInline: '16px', paddingBlock: '12px', color: 'inherit' }}
           >
-            <a 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                width: '100%',
-                padding: '12px 16px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                color: 'inherit'
-              }}
-            >
-              <Package size={20} /> All Products
-            </a>
+            <Package size={20} /> All Products
           </button>
-          <button 
+          <button
             className={`nav-button ${activeTab === 'reports' ? 'active' : ''}`}
             onClick={() => setActiveTab('reports')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%', display: 'flex', alignItems: 'center', gap: '12px', paddingInline: '16px', paddingBlock: '12px', color: 'inherit' }}
           >
-            <a 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                width: '100%',
-                padding: '12px 16px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                color: 'inherit'
-              }}
-            >
-              <BarChart3 size={20} /> Reports
-            </a>
+            <BarChart3 size={20} /> Reports
           </button>
-          <button 
+          <button
             className={`nav-button ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%', display: 'flex', alignItems: 'center', gap: '12px', paddingInline: '16px', paddingBlock: '12px', color: 'inherit' }}
           >
-            <a 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                width: '100%',
-                padding: '12px 16px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                color: 'inherit'
-              }}
-            >
-              <Users size={20} /> Users
-            </a>
+            <Users size={20} /> Users
           </button>
           <button
             className={`nav-button ${activeTab === 'account' ? 'active' : ''}`}
             onClick={() => setActiveTab('account')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%', display: 'flex', alignItems: 'center', gap: '12px', paddingInline: '16px', paddingBlock: '12px', color: 'inherit' }}
           >
-            <a 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                width: '100%',
-                padding: '12px 16px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                color: 'inherit'
-              }}
-            >
-              <Settings size={20} /> Account
-            </a>
+            <Settings size={20} /> Account
           </button>
         </nav>
         <div className="admin-user-wrap">
